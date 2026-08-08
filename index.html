@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <title>GOVEN Stock Scanner</title>
+
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, "Noto Sans Thai", sans-serif;
+      background: #f5f6f8;
+      color: #222;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 520px;
+      margin: auto;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 4px;
+      font-size: 27px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #777;
+      margin-bottom: 20px;
+    }
+
+    .mode-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .mode-btn {
+      padding: 18px 8px;
+      border: none;
+      border-radius: 14px;
+      background: white;
+      font-size: 16px;
+      font-weight: bold;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    }
+
+    .mode-btn.active {
+      background: #222;
+      color: white;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.08);
+    }
+
+    #reader {
+      width: 100%;
+      overflow: hidden;
+      border-radius: 12px;
+    }
+
+    .scan-btn {
+      width: 100%;
+      border: none;
+      padding: 16px;
+      border-radius: 12px;
+      background: #111;
+      color: white;
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 15px;
+    }
+
+    .manual-title {
+      margin-top: 18px;
+      margin-bottom: 7px;
+      color: #666;
+      font-size: 14px;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      font-size: 18px;
+    }
+
+    .continue-btn {
+      width: 100%;
+      border: none;
+      margin-top: 10px;
+      padding: 14px;
+      border-radius: 10px;
+      background: #e9e9e9;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    .status {
+      text-align: center;
+      margin-top: 12px;
+      color: #666;
+      white-space: pre-line;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <h1>📦 GOVEN Stock</h1>
+
+  <div class="subtitle">
+    Barcode Scanner
+  </div>
+
+  <div class="mode-grid">
+
+    <button
+      class="mode-btn active"
+      onclick="selectMode('IN', this)">
+      📥<br>รับสินค้าเข้า
+    </button>
+
+    <button
+      class="mode-btn"
+      onclick="selectMode('OUT', this)">
+      📤<br>เบิก / ขาย
+    </button>
+
+    <button
+      class="mode-btn"
+      onclick="selectMode('COUNT', this)">
+      📋<br>ตรวจนับ
+    </button>
+
+    <button
+      class="mode-btn"
+      onclick="selectMode('VIEW', this)">
+      🔍<br>ดู Stock
+    </button>
+
+  </div>
+
+
+  <div class="card">
+
+    <button
+      class="scan-btn"
+      onclick="startScanner()">
+      📷 เปิดกล้อง Scan Barcode
+    </button>
+
+    <div id="reader"></div>
+
+    <div class="manual-title">
+      หรือกรอก Barcode
+    </div>
+
+    <input
+      id="barcode"
+      type="text"
+      inputmode="numeric"
+      placeholder="Barcode">
+
+    <button
+      class="continue-btn"
+      onclick="manualSubmit()">
+      ดำเนินการต่อ
+    </button>
+
+    <div
+      id="status"
+      class="status">
+    </div>
+
+  </div>
+
+</div>
+
+
+<script>
+
+const APPS_SCRIPT_URL =
+  "PUT_YOUR_APPS_SCRIPT_EXEC_URL_HERE";
+
+let currentMode = "IN";
+
+let scanner = null;
+
+let scannerRunning = false;
+
+let alreadyScanned = false;
+
+
+function selectMode(mode, button) {
+
+  currentMode = mode;
+
+  document
+    .querySelectorAll(".mode-btn")
+    .forEach(btn => {
+      btn.classList.remove("active");
+    });
+
+  button.classList.add("active");
+}
+
+
+/*
+============================
+START CAMERA
+============================
+*/
+
+async function startScanner() {
+
+  const status =
+    document.getElementById("status");
+
+  status.innerText =
+    "กำลังเปิดกล้อง...";
+
+  if (scannerRunning) {
+    return;
+  }
+
+  alreadyScanned = false;
+
+  scanner = new Html5Qrcode("reader");
+
+  try {
+
+    await scanner.start(
+
+      {
+        facingMode: "environment"
+      },
+
+      {
+        fps: 12,
+
+        qrbox: {
+          width: 280,
+          height: 160
+        },
+
+        aspectRatio: 1.777
+      },
+
+      onScanSuccess,
+
+      function() {
+        // ignore scan errors
+      }
+
+    );
+
+    scannerRunning = true;
+
+    status.innerText =
+      "พร้อม Scan Barcode";
+
+  } catch (error) {
+
+    console.error(error);
+
+    status.innerText =
+      "ไม่สามารถเปิดกล้องได้\n" +
+      "กรุณาตรวจสอบ Camera Permission";
+  }
+}
+
+
+/*
+============================
+SCAN SUCCESS
+============================
+*/
+
+async function onScanSuccess(
+  decodedText,
+  decodedResult
+) {
+
+  if (alreadyScanned) {
+    return;
+  }
+
+  alreadyScanned = true;
+
+  document
+    .getElementById("barcode")
+    .value = decodedText;
+
+  document
+    .getElementById("status")
+    .innerText =
+      "✓ Scan สำเร็จ\n" +
+      decodedText;
+
+
+  if (navigator.vibrate) {
+    navigator.vibrate(100);
+  }
+
+
+  if (scannerRunning) {
+
+    try {
+
+      await scanner.stop();
+
+    } catch (e) {}
+
+    scannerRunning = false;
+  }
+
+
+  /*
+  ไป Apps Script
+  */
+
+  setTimeout(function() {
+
+    goToStockApp(decodedText);
+
+  }, 500);
+}
+
+
+/*
+============================
+MANUAL BARCODE
+============================
+*/
+
+function manualSubmit() {
+
+  const barcode =
+    document
+      .getElementById("barcode")
+      .value
+      .trim();
+
+  if (!barcode) {
+
+    alert("กรุณากรอก Barcode");
+
+    return;
+  }
+
+  goToStockApp(barcode);
+}
+
+
+/*
+============================
+OPEN STOCK APP
+============================
+*/
+
+function goToStockApp(barcode) {
+
+  if (
+    APPS_SCRIPT_URL.includes(
+      "PUT_YOUR"
+    )
+  ) {
+
+    alert(
+      "กรุณาใส่ Apps Script URL ก่อน"
+    );
+
+    return;
+  }
+
+
+  const url =
+    APPS_SCRIPT_URL +
+    "?barcode=" +
+    encodeURIComponent(barcode) +
+    "&mode=" +
+    encodeURIComponent(currentMode);
+
+
+  window.location.href = url;
+}
+
+</script>
+
+</body>
+</html>
