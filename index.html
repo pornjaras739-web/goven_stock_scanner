@@ -245,7 +245,15 @@ async function startScanner() {
 
   alreadyScanned = false;
 
-  scanner = new Html5Qrcode("reader");
+  scanner = 
+    new Html5Qrcode(
+    "reader",
+    {
+      formatsToSupport: [
+        Html5QrcodeSupportedFormats.CODE_128
+      ]
+    }
+  );
 
   try {
 
