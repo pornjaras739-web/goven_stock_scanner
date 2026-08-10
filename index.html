@@ -245,15 +245,7 @@ async function startScanner() {
 
   alreadyScanned = false;
 
-  scanner = 
-    new Html5Qrcode(
-    "reader",
-    {
-      formatsToSupport: [
-        Html5QrcodeSupportedFormats.CODE_128
-      ]
-    }
-  );
+  scanner = new Html5Qrcode("reader");
 
   try {
 
@@ -265,13 +257,17 @@ async function startScanner() {
 
       {
         fps: 15,
-
-        qrbox: {
-          width: 350,
-          height: 100
+      
+        qrbox: function(viewfinderWidth, viewfinderHeight) {
+      
+          return {
+            width: Math.floor(viewfinderWidth * 0.90),
+            height: Math.floor(viewfinderHeight * 0.35)
+          };
+      
         },
 
-        aspectRatio: 1.777
+        aspectRatio: 1.777778
       },
 
       onScanSuccess,
