@@ -416,10 +416,45 @@ function goToStockApp(barcode) {
   window.location.href = url;
 }
 
+async function loadCommitId() {
+
+  try {
+
+    const response = await fetch(
+      "https://api.github.com/repos/pornjaras739-web/goven_stock_scanner/commits/main"
+    );
+
+    if (!response.ok) {
+      throw new Error("GitHub API error");
+    }
+
+    const data = await response.json();
+
+    const shortCommit =
+      data.sha.substring(0, 7);
+
+    document
+      .getElementById("commitId")
+      .innerText = shortCommit;
+
+  } catch (error) {
+
+    console.error(error);
+
+    document
+      .getElementById("commitId")
+      .innerText = "unknown";
+
+  }
+
+}
+
+loadCommitId();
+  
 </script>
   
 <footer class="version-footer">
-  GOVEN Stock Scanner • Commit: <span id="commitId">v20260810-01</span>
+  GOVEN Stock Scanner • Commit: <span id="commitId">loading...</span>
 </footer>  
 
 </body>
